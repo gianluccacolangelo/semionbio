@@ -5,6 +5,10 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import imageio
 
+#
+# Set page configuration
+st.set_page_config(page_title="Semionbio", layout="wide")
+
 # Custom CSS for background and styling
 st.markdown(
     """
