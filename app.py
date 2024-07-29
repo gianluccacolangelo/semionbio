@@ -6,7 +6,7 @@ from scipy.integrate import solve_ivp
 import imageio
 
 
-class PsyllidModel:
+class ModeloPsyllid:
     def __init__(
         self,
         a=2.34,
@@ -24,7 +24,7 @@ class PsyllidModel:
         gamma=0.1,
         beta=0.04,
         se_curan=0,
-        initial_conditions=None,
+        condiciones_iniciales=None,
         t_span=[0, 350],
     ):
 
@@ -65,9 +65,9 @@ class PsyllidModel:
         ]
 
         self.default_initial_conditions = [1e7, 1e2, 0, 0, 13000, 0]
-        self.initial_conditions = (
-            initial_conditions
-            if initial_conditions is not None
+        self.condiciones_iniciales = (
+            condiciones_iniciales
+            if condiciones_iniciales is not None
             else self.default_initial_conditions
         )
 
@@ -117,7 +117,7 @@ class PsyllidModel:
         self.solution = solve_ivp(
             self.model,
             self.t_span,
-            self.initial_conditions,
+            self.condiciones_iniciales,
             t_eval=self.t_eval,
             method="LSODA",
         )
@@ -132,10 +132,10 @@ class PsyllidModel:
         fig, axs = plt.subplots(1, 2, figsize=(14, 6))
 
         axs[0].plot(
-            self.solution.t, self.solution.y[0], label="P_uninfected(t)", linewidth=2.5
+            self.solution.t, self.solution.y[0], label="P_sanos(t)", linewidth=2.5
         )
         axs[0].plot(
-            self.solution.t, self.solution.y[1], label="P_infected(t)", linewidth=2.5
+            self.solution.t, self.solution.y[1], label="P_infectados(t)", linewidth=2.5
         )
         axs[0].set_xlabel("Meses")
         axs[0].set_ylabel("Población (P)")
@@ -145,10 +145,10 @@ class PsyllidModel:
             axs[0].set_ylim(0, ylimp)
 
         axs[1].plot(
-            self.solution.t, self.solution.y[4], label="T_uninfected(t)", linewidth=2.5
+            self.solution.t, self.solution.y[4], label="T_sanos(t)", linewidth=2.5
         )
         axs[1].plot(
-            self.solution.t, self.solution.y[5], label="T_infected(t)", linewidth=2.5
+            self.solution.t, self.solution.y[5], label="T_infectados(t)", linewidth=2.5
         )
         axs[1].set_xlabel("Meses")
         axs[1].set_ylabel("Población (T)")
@@ -165,10 +165,10 @@ class PsyllidModel:
             raise ValueError(
                 "El modelo no ha sido resuelto aún. Llamá 'model.solve()' primero."
             )
-        infected_trees = self.solution.y[5]  # Ti is at index 5
-        peak_index = np.argmax(infected_trees)
+        arboles_infectados = self.solution.y[5]  # Ti está en el índice 5
+        peak_index = np.argmax(arboles_infectados)
         peak_time = self.solution.t[peak_index]
-        peak_value = infected_trees[peak_index]
+        peak_value = arboles_infectados[peak_index]
         return peak_time, peak_value
 
     def run_c_mua_range(
@@ -186,8 +186,8 @@ class PsyllidModel:
 
         for i, c in enumerate(c_values):
             for j, mua in enumerate(mua_values):
-                self.params[1] = c  # Update c in the parameters list
-                self.params[4] = mua  # Update mua in the parameters list
+                self.params[1] = c  # Actualizar c en la lista de parámetros
+                self.params[4] = mua  # Actualizar mua en la lista de parámetros
                 self.solve()
                 peak_time, _ = self.get_peak_infected_time()
                 peak_times[i, j] = peak_time
@@ -209,8 +209,8 @@ class PsyllidModel:
 
         for i, lambdu in enumerate(lambdu_values):
             for j, mua in enumerate(mua_values):
-                self.params[2] = lambdu  # Update lambdu in the parameters list
-                self.params[4] = mua  # Update mua in the parameters list
+                self.params[2] = lambdu  # Actualizar lambdu en la lista de parámetros
+                self.params[4] = mua  # Actualizar mua en la lista de parámetros
                 self.solve()
                 peak_time, _ = self.get_peak_infected_time()
                 peak_times[i, j] = peak_time
@@ -218,100 +218,109 @@ class PsyllidModel:
         return lambdu_values, mua_values, peak_times
 
 
-def create_gif(
-    model, param_name, param_start, param_end, param_step, initial_conditions
+def crear_gif(
+    modelo,
+    nombre_parametro,
+    inicio_parametro,
+    fin_parametro,
+    paso_parametro,
+    condiciones_iniciales,
 ):
-    if param_name not in model.param_names:
-        raise ValueError(f"Invalid parameter name: {param_name}")
-    param_index = model.param_names.index(param_name)
-    param_values = np.arange(param_start, param_end + param_step, param_step)
-    filenames = []
-    for param_value in param_values:
-        # Create a new model instance with updated parameters and initial conditions
-        new_params = model.params.copy()
-        new_params[param_index] = param_value
-        new_model = PsyllidModel(*new_params, initial_conditions=initial_conditions)
-        new_model.solve()
+    if nombre_parametro not in modelo.param_names:
+        raise ValueError(f"Nombre de parámetro inválido: {nombre_parametro}")
+    indice_parametro = modelo.param_names.index(nombre_parametro)
+    valores_parametro = np.arange(
+        inicio_parametro, fin_parametro + paso_parametro, paso_parametro
+    )
+    nombres_archivos = []
+    for valor_parametro in valores_parametro:
+        # Crear una nueva instancia del modelo con parámetros actualizados y condiciones iniciales
+        nuevos_parametros = modelo.params.copy()
+        nuevos_parametros[indice_parametro] = valor_parametro
+        nuevo_modelo = ModeloPsyllid(
+            *nuevos_parametros, condiciones_iniciales=condiciones_iniciales
+        )
+        nuevo_modelo.solve()
 
         fig, axs = plt.subplots(1, 2, figsize=(14, 6))
         axs[0].plot(
-            new_model.solution.t,
-            new_model.solution.y[0],
-            label="P_uninfected(t)",
+            nuevo_modelo.solution.t,
+            nuevo_modelo.solution.y[0],
+            label="P_sanos(t)",
             linewidth=2.5,
         )
         axs[0].plot(
-            new_model.solution.t,
-            new_model.solution.y[1],
-            label="P_infected(t)",
+            nuevo_modelo.solution.t,
+            nuevo_modelo.solution.y[1],
+            label="P_infectados(t)",
             linewidth=2.5,
         )
         axs[0].set_xlabel("Meses")
         axs[0].set_ylabel("Población (P)")
         axs[0].set_title(
-            f"Dinámica poblacional de Psyllid (P) - {param_name}={param_value:.2f}"
+            f"Dinámica poblacional de Psyllid (P) - {nombre_parametro}={valor_parametro:.2f}"
         )
         axs[0].legend()
         axs[1].plot(
-            new_model.solution.t,
-            new_model.solution.y[4],
-            label="T_uninfected(t)",
+            nuevo_modelo.solution.t,
+            nuevo_modelo.solution.y[4],
+            label="T_sanos(t)",
             linewidth=2.5,
         )
         axs[1].plot(
-            new_model.solution.t,
-            new_model.solution.y[5],
-            label="T_infected(t)",
+            nuevo_modelo.solution.t,
+            nuevo_modelo.solution.y[5],
+            label="T_infectados(t)",
             linewidth=2.5,
         )
         axs[1].set_xlabel("Meses")
         axs[1].set_ylabel("Población (T)")
         axs[1].set_title(
-            f"Dinámica poblacional de Árboles (T) - {param_name}={param_value:.2f}"
+            f"Dinámica poblacional de Árboles (T) - {nombre_parametro}={valor_parametro:.2f}"
         )
         axs[1].legend()
         plt.tight_layout()
-        filename = f"frame_{param_name}_{param_value:.2f}.png"
-        filenames.append(filename)
-        plt.savefig(filename)
+        nombre_archivo = f"frame_{nombre_parametro}_{valor_parametro:.2f}.png"
+        nombres_archivos.append(nombre_archivo)
+        plt.savefig(nombre_archivo)
         plt.close()
-        print(f"Saved frame: {filename}")
+        print(f"Archivo guardado: {nombre_archivo}")
 
-    # Reverse the filenames list to create the reverse loop
-    filenames += filenames[::-1]
+    # Revertir la lista de nombres de archivos para crear el bucle inverso
+    nombres_archivos += nombres_archivos[::-1]
 
-    # Create a unique filename for the GIF
-    gif_filename = f"population_dynamics_{param_name}.gif"
+    # Crear un nombre de archivo único para el GIF
+    nombre_gif = f"dinamicas_poblacionales_{nombre_parametro}.gif"
 
-    with imageio.get_writer(gif_filename, mode="I", duration=0.5) as writer:
-        for filename in filenames:
+    with imageio.get_writer(nombre_gif, mode="I", duration=0.5) as writer:
+        for nombre_archivo in nombres_archivos:
             try:
-                image = imageio.imread(filename)
-                writer.append_data(image)
+                imagen = imageio.imread(nombre_archivo)
+                writer.append_data(imagen)
             except FileNotFoundError:
-                print(f"File not found: {filename}")
+                print(f"Archivo no encontrado: {nombre_archivo}")
 
-    # Cleanup temporary files
-    for filename in filenames:
+    # Limpiar archivos temporales
+    for nombre_archivo in nombres_archivos:
         try:
-            os.remove(filename)
-            print(f"Removed file: {filename}")
+            os.remove(nombre_archivo)
+            print(f"Archivo eliminado: {nombre_archivo}")
         except FileNotFoundError:
-            print(f"File not found for removal: {filename}")
+            print(f"Archivo no encontrado para eliminar: {nombre_archivo}")
 
-    # Display the GIF in Streamlit
-    st.image(gif_filename)
+    # Mostrar el GIF en Streamlit
+    st.image(nombre_gif)
 
-    # Optionally, remove the GIF file after displaying
-    os.remove(gif_filename)
-    print(f"Removed GIF file: {gif_filename}")
+    # Opcionalmente, eliminar el archivo GIF después de mostrarlo
+    os.remove(nombre_gif)
+    print(f"Archivo GIF eliminado: {nombre_gif}")
 
 
 def main():
-    st.title("Psyllid Population Dynamics Model")
-    st.sidebar.header("Model Parameters")
+    st.title("Modelo de Dinámica Poblacional de Psyllid")
+    st.sidebar.header("Parámetros del Modelo")
 
-    # Model parameter sliders
+    # Deslizadores de parámetros del modelo
     c = st.sidebar.slider("c: Preferencia por infectados", 0.1, 0.9, 0.5, 0.01)
     mua = st.sidebar.slider(
         "μa: Tasa de muerte de psílidos con plantas trampa", 0.1, 1.0, 0.75, 0.01
@@ -319,7 +328,7 @@ def main():
     lambdu = st.sidebar.slider("λ: Tasa de infección de psílidos", 0.1, 0.9, 0.75, 0.01)
     gamma = st.sidebar.slider("γ: Tasa de infección de árboles", 0.01, 0.9, 0.1, 0.01)
 
-    # Default values for other parameters
+    # Valores predeterminados para otros parámetros
     a = 2.34
     p = 1.22
     f = 100
@@ -332,8 +341,8 @@ def main():
     beta = 0.04
     se_curan = 0.0
 
-    # Initial conditions input
-    st.sidebar.header("Initial Conditions")
+    # Entrada de condiciones iniciales
+    st.sidebar.header("Condiciones Iniciales")
     Pu_init = st.sidebar.number_input("Psílidos sanos (Pu)", value=1e7, format="%e")
     Pi_init = st.sidebar.number_input(
         "Psílidos infectados (Pi)", value=1e2, format="%e"
@@ -343,9 +352,9 @@ def main():
     Tu_init = st.sidebar.number_input("Árboles sanos (Tu)", value=13000.0)
     Ti_init = st.sidebar.number_input("Árboles infectados (Ti)", value=0.0)
 
-    initial_conditions = [Pu_init, Pi_init, Iu_init, Ii_init, Tu_init, Ti_init]
+    condiciones_iniciales = [Pu_init, Pi_init, Iu_init, Ii_init, Tu_init, Ti_init]
 
-    model = PsyllidModel(
+    modelo = ModeloPsyllid(
         a=a,
         c=c,
         lambdu=lambdu,
@@ -361,41 +370,43 @@ def main():
         gamma=gamma,
         beta=beta,
         se_curan=se_curan,
-        initial_conditions=initial_conditions,
+        condiciones_iniciales=condiciones_iniciales,
     )
 
-    if st.sidebar.button("Run Model", key="run_model_button"):
-        model.solve()
-        model.plot()
-        peak_time, peak_value = model.get_peak_infected_time()
+    if st.sidebar.button("Ejecutar Modelo", key="run_model_button"):
+        modelo.solve()
+        modelo.plot()
+        peak_time, peak_value = modelo.get_peak_infected_time()
         st.write(
-            f"The maximum number of infected trees is reached at month {peak_time:.2f} with a value of {peak_value:.2f}."
+            f"El número máximo de árboles infectados se alcanza en el mes {peak_time:.2f} con un valor de {peak_value:.2f}."
         )
 
-    # GIF creation section
-    st.sidebar.header("Create GIF")
-    param_name = st.sidebar.selectbox("Choose parameter to vary", model.param_names)
-    param_start = st.sidebar.number_input(
-        f"Start value for {param_name}", value=0.1, step=0.01
+    # Sección de creación de GIF
+    st.sidebar.header("Crear GIF")
+    nombre_parametro = st.sidebar.selectbox(
+        "Elige el parámetro a variar", modelo.param_names
     )
-    param_end = st.sidebar.number_input(
-        f"End value for {param_name}", value=0.99, step=0.01
+    inicio_parametro = st.sidebar.number_input(
+        f"Valor inicial para {nombre_parametro}", value=0.1, step=0.01
     )
-    param_step = st.sidebar.number_input(
-        f"Step size for {param_name}", value=0.025, step=0.005
+    fin_parametro = st.sidebar.number_input(
+        f"Valor final para {nombre_parametro}", value=0.99, step=0.01
+    )
+    paso_parametro = st.sidebar.number_input(
+        f"Tamaño del paso para {nombre_parametro}", value=0.025, step=0.005
     )
 
-    if st.sidebar.button("Generate GIF", key="generate_gif_button"):
-        with st.spinner("Generating GIF... This may take a moment."):
-            create_gif(
-                model,
-                param_name,
-                param_start,
-                param_end,
-                param_step,
-                initial_conditions,
+    if st.sidebar.button("Generar GIF", key="generate_gif_button"):
+        with st.spinner("Generando GIF... Esto puede tardar un momento."):
+            crear_gif(
+                modelo,
+                nombre_parametro,
+                inicio_parametro,
+                fin_parametro,
+                paso_parametro,
+                condiciones_iniciales,
             )
-        st.success("GIF generated successfully!")
+        st.success("¡GIF generado con éxito!")
 
 
 if __name__ == "__main__":
