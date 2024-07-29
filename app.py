@@ -5,6 +5,23 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import imageio
 
+# Custom CSS for background and styling
+st.markdown(
+    """
+    <style>
+    .reportview-container {
+        background: url("https://www.example.com/your-background-image.jpg");
+        background-size: cover;
+    }
+    .sidebar .sidebar-content {
+        background: url("https://www.example.com/your-sidebar-image.jpg");
+        background-size: cover;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 class ModeloPsyllid:
     def __init__(
@@ -318,85 +335,66 @@ def crear_gif(
 
 def main():
     st.title("Modelo de Dinámica Poblacional de Psyllid")
+
     st.sidebar.header("Parámetros del Modelo")
+    with st.sidebar.form(key="params_form"):
+        # Model parameter sliders
+        c = st.slider("c: Preferencia por infectados", 0.1, 0.9, 0.5, 0.01)
+        mua = st.slider(
+            "μa: Tasa de muerte de psílidos con plantas trampa", 0.1, 1.0, 0.75, 0.01
+        )
+        lambdu = st.slider("λ: Tasa de infección de psílidos", 0.1, 0.9, 0.75, 0.01)
+        gamma = st.slider("γ: Tasa de infección de árboles", 0.01, 0.9, 0.1, 0.01)
 
-    # Deslizadores de parámetros del modelo
-    c = st.sidebar.slider("c: Preferencia por infectados", 0.1, 0.9, 0.5, 0.01)
-    mua = st.sidebar.slider(
-        "μa: Tasa de muerte de psílidos con plantas trampa", 0.1, 1.0, 0.75, 0.01
-    )
-    lambdu = st.sidebar.slider("λ: Tasa de infección de psílidos", 0.1, 0.9, 0.75, 0.01)
-    gamma = st.sidebar.slider("γ: Tasa de infección de árboles", 0.01, 0.9, 0.1, 0.01)
+        # Initial conditions input
+        st.header("Condiciones Iniciales")
+        Pu_init = st.number_input("Psílidos sanos (Pu)", value=1e7, format="%e")
+        Pi_init = st.number_input("Psílidos infectados (Pi)", value=1e2, format="%e")
+        Iu_init = st.number_input("Larvas sanas (Iu)", value=0.0, format="%e")
+        Ii_init = st.number_input("Larvas infectadas (Ii)", value=0.0, format="%e")
+        Tu_init = st.number_input("Árboles sanos (Tu)", value=13000.0)
+        Ti_init = st.number_input("Árboles infectados (Ti)", value=0.0)
 
-    # Valores predeterminados para otros parámetros
-    a = 2.34
-    p = 1.22
-    f = 100
-    v = 0.75
-    omega = np.pi / 8
-    w = 45
-    q = 0.5
-    mui = 0.105
-    g = 3
-    beta = 0.04
-    se_curan = 0.0
+        submitted = st.form_submit_button("Ejecutar Modelo")
 
-    # Entrada de condiciones iniciales
-    st.sidebar.header("Condiciones Iniciales")
-    Pu_init = st.sidebar.number_input("Psílidos sanos (Pu)", value=1e7, format="%e")
-    Pi_init = st.sidebar.number_input(
-        "Psílidos infectados (Pi)", value=1e2, format="%e"
-    )
-    Iu_init = st.sidebar.number_input("Larvas sanas (Iu)", value=0.0, format="%e")
-    Ii_init = st.sidebar.number_input("Larvas infectadas (Ii)", value=0.0, format="%e")
-    Tu_init = st.sidebar.number_input("Árboles sanos (Tu)", value=13000.0)
-    Ti_init = st.sidebar.number_input("Árboles infectados (Ti)", value=0.0)
-
-    condiciones_iniciales = [Pu_init, Pi_init, Iu_init, Ii_init, Tu_init, Ti_init]
+    initial_conditions = [Pu_init, Pi_init, Iu_init, Ii_init, Tu_init, Ti_init]
 
     modelo = ModeloPsyllid(
-        a=a,
         c=c,
-        lambdu=lambdu,
-        p=p,
         mua=mua,
-        f=f,
-        v=v,
-        omega=omega,
-        w=w,
-        q=q,
-        mui=mui,
-        g=g,
+        lambdu=lambdu,
         gamma=gamma,
-        beta=beta,
-        se_curan=se_curan,
-        condiciones_iniciales=condiciones_iniciales,
+        condiciones_iniciales=initial_conditions,
     )
 
-    if st.sidebar.button("Ejecutar Modelo", key="run_model_button"):
-        modelo.solve()
-        modelo.plot()
-        peak_time, peak_value = modelo.get_peak_infected_time()
-        st.write(
-            f"El número máximo de árboles infectados se alcanza en el mes {peak_time:.2f} con un valor de {peak_value:.2f}."
+    if submitted:
+        with st.spinner("Resolviendo el modelo..."):
+            modelo.solve()
+            modelo.plot()
+            peak_time, peak_value = modelo.get_peak_infected_time()
+            st.success(
+                f"El número máximo de árboles infectados se alcanza en el mes {peak_time:.2f} con un valor de {peak_value:.2f}."
+            )
+
+    # GIF creation section
+    st.sidebar.header("Crear GIF")
+    with st.sidebar.form(key="gif_form"):
+        nombre_parametro = st.selectbox(
+            "Elige el parámetro a variar", modelo.param_names
+        )
+        inicio_parametro = st.number_input(
+            f"Valor inicial para {nombre_parametro}", value=0.1, step=0.01
+        )
+        fin_parametro = st.number_input(
+            f"Valor final para {nombre_parametro}", value=0.99, step=0.01
+        )
+        paso_parametro = st.number_input(
+            f"Tamaño del paso para {nombre_parametro}", value=0.025, step=0.005
         )
 
-    # Sección de creación de GIF
-    st.sidebar.header("Crear GIF")
-    nombre_parametro = st.sidebar.selectbox(
-        "Elige el parámetro a variar", modelo.param_names
-    )
-    inicio_parametro = st.sidebar.number_input(
-        f"Valor inicial para {nombre_parametro}", value=0.1, step=0.01
-    )
-    fin_parametro = st.sidebar.number_input(
-        f"Valor final para {nombre_parametro}", value=0.99, step=0.01
-    )
-    paso_parametro = st.sidebar.number_input(
-        f"Tamaño del paso para {nombre_parametro}", value=0.025, step=0.005
-    )
+        generate_gif = st.form_submit_button("Generar GIF")
 
-    if st.sidebar.button("Generar GIF", key="generate_gif_button"):
+    if generate_gif:
         with st.spinner("Generando GIF... Esto puede tardar un momento."):
             crear_gif(
                 modelo,
@@ -404,7 +402,7 @@ def main():
                 inicio_parametro,
                 fin_parametro,
                 paso_parametro,
-                condiciones_iniciales,
+                initial_conditions,
             )
         st.success("¡GIF generado con éxito!")
 
