@@ -81,7 +81,7 @@ class ModeloPsyllid:
             "se_curan",
         ]
 
-        self.default_initial_conditions = [1e7, 1e2, 0, 0, 13000, 0]
+        self.default_initial_conditions = [400, 200, 0, 0, 399, 1]
         self.condiciones_iniciales = (
             condiciones_iniciales
             if condiciones_iniciales is not None
