@@ -348,12 +348,12 @@ def main():
 
         # Initial conditions input
         st.header("Condiciones Iniciales")
-        Pu_init = st.number_input("Psílidos sanos (Pu)", value=1e7, format="%e")
-        Pi_init = st.number_input("Psílidos infectados (Pi)", value=1e2, format="%e")
-        Iu_init = st.number_input("Larvas sanas (Iu)", value=0.0, format="%e")
-        Ii_init = st.number_input("Larvas infectadas (Ii)", value=0.0, format="%e")
-        Tu_init = st.number_input("Árboles sanos (Tu)", value=13000.0)
-        Ti_init = st.number_input("Árboles infectados (Ti)", value=0.0)
+        Pu_init = st.number_input("Psílidos sanos (Pu)", value=400, format="%e")
+        Pi_init = st.number_input("Psílidos infectados (Pi)", value=200, format="%e")
+        Iu_init = st.number_input("Larvas sanas (Iu)", value=0, format="%e")
+        Ii_init = st.number_input("Larvas infectadas (Ii)", value=0, format="%e")
+        Tu_init = st.number_input("Árboles sanos (Tu)", value=399)
+        Ti_init = st.number_input("Árboles infectados (Ti)", value=1)
 
         submitted = st.form_submit_button("Ejecutar Modelo")
 
